@@ -1,6 +1,8 @@
 import React, { useEffect, useState, useRef } from 'react';
+import { api } from '../api/client';
 
 const SESSION_ID = 'nexus-session-' + Date.now();
+
 
 const INITIAL_MSG = {
   id: 0, role: 'assistant',
@@ -254,33 +256,12 @@ If asked about a specific location, provide location-specific risk context. Be d
     setInput('');
     setLoading(true);
     try {
-      const groqMessages = buildGroqMessages(messages, msg);
-      const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${GROQ_API_KEY}`,
-        },
-        body: JSON.stringify({
-          model: GROQ_MODEL,
-          messages: [
-            { role: 'system', content: SYSTEM_PROMPT },
-            ...groqMessages,
-          ],
-          temperature: 0.6,
-          max_tokens: 16000,
-          stream: false,
-        }),
+      // Route through backend — GROQ_API_KEY is securely stored on Render, not in frontend
+      const res = await api.post('/ai/chat', {
+        message: msg,
+        session_id: SESSION_ID,
       });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err?.error?.message || `Groq API error ${res.status}`);
-      }
-      const data = await res.json();
-      const choice = data.choices?.[0]?.message;
-      // Strip Qwen3's internal <think>...</think> reasoning block — only show the final answer
-      const raw = choice?.content || 'No response received.';
-      const aiContent = raw.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+      const aiContent = res.data?.content || 'No response received.';
       setMessages(p => [...p, {
         id: Date.now(),
         role: 'assistant',
@@ -288,9 +269,10 @@ If asked about a specific location, provide location-specific risk context. Be d
         timestamp: new Date().toISOString(),
       }]);
     } catch (err) {
+      const errMsg = err?.response?.data?.detail || err.message || 'Connection to AI failed. Please try again.';
       setMessages(p => [...p, {
         id: Date.now(), role: 'assistant',
-        content: `⚠️ **AI Error**\n\n${err.message || 'Connection to Groq AI failed. Please try again.'}`,
+        content: `⚠️ **AI Error**\n\n${errMsg}`,
         timestamp: new Date().toISOString(),
       }]);
     } finally {
@@ -298,6 +280,7 @@ If asked about a specific location, provide location-specific risk context. Be d
       inputRef.current?.focus();
     }
   };
+
 
 
   return (
@@ -317,7 +300,7 @@ If asked about a specific location, provide location-specific risk context. Be d
           <div>
             <div style={{ fontWeight: 700, fontSize: 15 }}>LANDSense AI Copilot</div>
             <div style={{ fontSize: 10, color: 'var(--cyan)', fontFamily: 'monospace', letterSpacing: '0.08em' }}>
-              GROQ · QWEN3-27B · THINKING MODE · ACTIVE
+              GROQ · GPT-OSS-120B · DEEP REASONING · ACTIVE
             </div>
           </div>
           <div style={{ marginLeft: 'auto', display: 'flex', gap: 12, alignItems: 'center' }}>
