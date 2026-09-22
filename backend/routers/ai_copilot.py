@@ -1,5 +1,6 @@
-"""AI Copilot router — contextual intelligent responses using Groq."""
+"""AI Copilot router — deep reasoning responses using Groq DeepSeek-R1."""
 import os
+import re
 import json
 import logging
 from typing import List, Dict, Any
@@ -19,9 +20,19 @@ except ImportError:
 load_dotenv()
 router = APIRouter(prefix="/ai", tags=["AI Copilot"])
 
+# Deep reasoning model — GPT-OSS-120B on Groq (most powerful, extended analytical thinking)
+REASONING_MODEL = "openai/gpt-oss-120b"
+
 client = None
 if Groq and os.environ.get("GROQ_API_KEY"):
     client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
+
+
+def strip_thinking_tags(text: str) -> str:
+    """Remove internal <think>...</think> chain-of-thought blocks from DeepSeek-R1 output."""
+    # Remove full <think>...</think> blocks (the model's internal reasoning)
+    cleaned = re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL)
+    return cleaned.strip()
 
 # Define the tools
 tools = [
@@ -161,32 +172,35 @@ def chat(
             for s in sensors
         ]) or "No sensor data."
 
-        system_prompt = f"""You are NEXUS — a highly capable, friendly AI assistant built into the NEXUS-LAND disaster intelligence platform.
+        system_prompt = f"""You are NEXUS — an advanced AI disaster intelligence analyst powered by deep reasoning, built into the NEXUS-LAND platform.
 
-You can help with ANYTHING the user asks: science, geography, math, coding, history, general knowledge, creative writing, explanations, advice, brainstorming, landslides, disasters, and more.
+You think deeply and thoroughly before responding. For complex questions, reason step-by-step through the problem before giving your final answer. Be precise, analytical, and thorough.
 
-When users ask about the platform's data, use the live information below. For everything else, answer using your broad knowledge.
+You can help with ANYTHING: geotechnical analysis, disaster risk assessment, science, math, coding, geography, history, general knowledge, advice, and more.
+
+When users ask about platform data, use the live information below. For everything else, draw on your deep knowledge.
 
 ━━━━━━━━━━ LIVE PLATFORM DATA ━━━━━━━━━━
 
 🔴 ACTIVE INCIDENTS (top by risk score):
 {incident_ctx}
 
-📡 SENSOR NETWORK:
+📡 SENSOR NETWORK (live telemetry):
 {sensor_ctx}
 
 📊 DATASET: Landslide4Sense — 1,468 Sentinel-2 satellite images, 3,799 ground-truth masks. Coverage: North Eastern India, Himalayas, Hindu Kush.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-INSTRUCTIONS:
-- Be warm, helpful, and conversational
-- Use markdown formatting (bold, bullet lists, headers) to structure long answers
-- For platform questions, cite the live data above
-- For general questions, answer accurately and helpfully
-- If you don't know something, say so honestly
-- Keep responses concise unless a detailed answer is needed
-- You can help with: code, math, science, geography, weather, geology, landslide science, disaster management, general Q&A, and more"""
+RESPONSE GUIDELINES:
+- Think deeply before answering — analyze multiple angles for complex questions
+- Use markdown formatting: **bold**, bullet lists, headers, code blocks where appropriate
+- For disaster/risk questions: provide quantitative analysis, cite geotechnical principles, reference live data
+- For general questions: give comprehensive, accurate, well-reasoned answers
+- Be warm but precise — this is a professional disaster intelligence platform
+- For calculations or technical problems: show your reasoning clearly
+- If uncertain, say so and explain what additional data would help
+- You can perform: slope stability analysis, risk scoring, evacuation routing logic, sensor data interpretation, incident triage"""
 
         messages = [{"role": "system", "content": system_prompt}]
 
@@ -196,11 +210,17 @@ INSTRUCTIONS:
 
         try:
             response = client.chat.completions.create(
-                model="qwen/qwen3.8-27b",
+                model=REASONING_MODEL,
                 messages=messages,
-                max_tokens=2048,
+                max_tokens=8192,
+                temperature=0.6,
             )
-            response_text = response.choices[0].message.content or "Intelligence core returned an empty response."
+            raw_text = response.choices[0].message.content or "Intelligence core returned an empty response."
+            # Strip DeepSeek-R1's internal <think>...</think> chain-of-thought before showing to user
+            response_text = strip_thinking_tags(raw_text)
+            if not response_text:
+                response_text = raw_text  # fallback if stripping removed everything
+
 
         except Exception as e:
             logging.warning(f"Groq API unavailable ({e}), using autonomous platform intelligence.")
@@ -246,5 +266,5 @@ def agent_trace(session_id: str, _: models.User = Depends(get_current_user)):
             {"step": 1, "tool": "LLM Inference", "input": "Query Intent Analysis", "output": "Mapped to tools via Groq API", "duration_ms": 420},
         ],
         "total_duration_ms": 845,
-        "model_used": "openai/gpt-oss-120b (via Groq)",
+        "model_used": "openai/gpt-oss-120b (Groq — 120B Deep Reasoning)",
     }
