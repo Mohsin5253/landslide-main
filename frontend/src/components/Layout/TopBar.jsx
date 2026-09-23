@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import useStore from '../../store/useStore';
 import { getSummary } from '../../api/client';
 
-export default function TopBar() {
+export default function TopBar({ onMenuClick }) {
   const { user, alerts } = useStore();
   const [time, setTime] = useState(new Date());
   const [summary, setSummary] = useState(null);
@@ -43,50 +43,54 @@ export default function TopBar() {
   }, []);
 
   const activeAlerts = alerts.filter(a => !a.resolved).length;
+  const isSim = localStorage.getItem('nexus_sim_mode') === 'true';
 
   return (
-    <header className="top-bar" style={{
-      display: 'flex', alignItems: 'center', gap: 16,
-      padding: '0 20px', height: 56,
-    }}>
+    <header className="top-bar">
+      {/* Hamburger — mobile only */}
+      <button
+        className="topbar-hamburger"
+        onClick={onMenuClick}
+        aria-label="Open navigation menu"
+      >
+        <span />
+        <span />
+        <span />
+      </button>
+
       {/* Brand */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginRight: 12, flexShrink: 0 }}>
+      <div className="topbar-brand">
         <div style={{
           width: 28, height: 28, background: 'var(--cyan)', borderRadius: 5,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           fontSize: 12, fontWeight: 700, color: '#000', fontFamily: 'var(--font-headline)',
-          boxShadow: '0 0 12px rgba(0,229,255,0.3)',
+          boxShadow: '0 0 12px rgba(0,229,255,0.3)', flexShrink: 0,
         }}>N</div>
-        <div>
+        <div className="topbar-brand-text">
           <span style={{
             fontFamily: 'var(--font-headline)', fontSize: 12, fontWeight: 700,
             letterSpacing: '0.12em', color: 'var(--cyan)', textTransform: 'uppercase',
           }}>LANDSense</span>
-          <span style={{
+          <span className="topbar-subtitle" style={{
             fontFamily: 'var(--font-mono)', fontSize: 8, color: 'var(--text-muted)',
             letterSpacing: '0.1em', textTransform: 'uppercase', marginLeft: 8,
           }}>Disaster Intelligence</span>
         </div>
       </div>
 
-      {/* Center Status */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 16, flex: 1 }}>
-        {/* System Status */}
+      {/* Center Status — hidden on mobile */}
+      <div className="topbar-status">
         <div style={{
           display: 'flex', alignItems: 'center', gap: 5,
           padding: '3px 10px', borderRadius: 4,
           background: 'rgba(34,197,94,0.06)', border: '1px solid rgba(34,197,94,0.15)',
         }}>
-          <div style={{
-            width: 5, height: 5, borderRadius: '50%',
-            background: 'var(--green)', boxShadow: '0 0 6px var(--green)',
-          }} />
+          <div style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--green)', boxShadow: '0 0 6px var(--green)' }} />
           <span style={{ fontSize: 8, color: 'var(--green)', fontFamily: 'var(--font-mono)', fontWeight: 700, letterSpacing: '0.08em' }}>
             SYSTEM NOMINAL
           </span>
         </div>
 
-        {/* AI Status */}
         <div style={{
           display: 'flex', alignItems: 'center', gap: 5,
           padding: '3px 10px', borderRadius: 4,
@@ -110,9 +114,7 @@ export default function TopBar() {
               <span style={{
                 fontFamily: 'var(--font-mono)', fontSize: 13, fontWeight: 700,
                 color: summary.critical_incidents > 0 ? 'var(--red)' : 'var(--text-primary)',
-              }}>
-                {summary.total_incidents}
-              </span>
+              }}>{summary.total_incidents}</span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <span style={{ fontSize: 8, color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', letterSpacing: '0.08em' }}>SENSORS</span>
@@ -138,36 +140,28 @@ export default function TopBar() {
       </div>
 
       {/* Right Section */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
-        {/* Sim Mode Toggle */}
-        <button 
+      <div className="topbar-right">
+        {/* Sim Toggle — hidden on mobile */}
+        <button
+          className="topbar-sim-btn"
           onClick={() => {
-            const isSim = localStorage.getItem('nexus_sim_mode') === 'true';
-            localStorage.setItem('nexus_sim_mode', !isSim ? 'true' : 'false');
+            const sim = localStorage.getItem('nexus_sim_mode') === 'true';
+            localStorage.setItem('nexus_sim_mode', (!sim).toString());
             window.dispatchEvent(new Event('nexus_sim_changed'));
           }}
           style={{
-            background: localStorage.getItem('nexus_sim_mode') === 'true' ? 'var(--red)' : 'transparent',
-            color: localStorage.getItem('nexus_sim_mode') === 'true' ? '#fff' : 'var(--text-muted)',
-            border: `1px solid ${localStorage.getItem('nexus_sim_mode') === 'true' ? 'var(--red)' : 'var(--border-subtle)'}`,
-            padding: '4px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: 'bold', cursor: 'pointer',
-            animation: localStorage.getItem('nexus_sim_mode') === 'true' ? 'pulse-red 2s infinite' : 'none',
-            fontFamily: 'var(--font-mono)'
+            background: isSim ? 'rgba(255,59,92,0.2)' : 'rgba(255,255,255,0.05)',
+            border: isSim ? '1px solid var(--red)' : '1px solid var(--border-subtle)',
+            color: isSim ? 'var(--red)' : 'var(--text-secondary)',
+            fontWeight: 700, fontSize: 11, fontFamily: 'var(--font-mono)',
+            padding: '4px 10px', borderRadius: 4,
+            display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer',
           }}
+          title="Toggle Simulation Mode"
         >
-          {localStorage.getItem('nexus_sim_mode') === 'true' ? '⚡ SIM MODE' : '⚡ SIM'}
+          <span>⚡</span>
+          <span>{isSim ? 'SIM ON' : 'SIM'}</span>
         </button>
-
-        {/* Search Shortcut */}
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: 6,
-          padding: '4px 10px', borderRadius: 4,
-          background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-subtle)',
-          cursor: 'pointer', transition: 'all 0.15s',
-        }}>
-          <span style={{ fontSize: 12, opacity: 0.4 }}>🔍</span>
-          <span style={{ fontSize: 9, color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>⌘K</span>
-        </div>
 
         {/* Alerts Bell */}
         <button className="btn-ghost btn-icon" style={{ position: 'relative' }}>
@@ -182,20 +176,17 @@ export default function TopBar() {
           )}
         </button>
 
-        {/* Theme Switcher Segmented Control */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 2,
+        {/* Theme Switcher — hidden on mobile */}
+        <div className="topbar-themes" style={{
+          display: 'flex', alignItems: 'center', gap: 2,
           background: 'rgba(255,255,255,0.04)',
           border: '1px solid var(--border-subtle)',
-          borderRadius: 6,
-          padding: 2,
+          borderRadius: 6, padding: 2,
         }}>
           {[
-            { id: 'obsidian', label: '🌌 Obsidian', title: 'Cyber-GIS Dark Theme' },
-            { id: 'navy', label: '🛡️ Navy', title: 'Defense Command Theme' },
-            { id: 'emerald', label: '🌿 Emerald', title: 'Tactical Recon Theme' }
+            { id: 'obsidian', label: '🌌', title: 'Obsidian' },
+            { id: 'navy',     label: '🛡️', title: 'Navy' },
+            { id: 'emerald',  label: '🌿', title: 'Emerald' },
           ].map(t => {
             const isSel = theme === t.id;
             return (
@@ -206,15 +197,11 @@ export default function TopBar() {
                 style={{
                   background: isSel ? 'var(--cyan)' : 'transparent',
                   color: isSel ? 'var(--text-inverse)' : 'var(--text-secondary)',
-                  border: 'none',
-                  borderRadius: 4,
-                  padding: '3px 8px',
-                  fontFamily: 'var(--font-mono)',
-                  fontSize: 10,
-                  fontWeight: isSel ? 700 : 500,
-                  cursor: 'pointer',
+                  border: 'none', borderRadius: 4, padding: '3px 7px',
+                  fontFamily: 'var(--font-mono)', fontSize: 10,
+                  fontWeight: isSel ? 700 : 500, cursor: 'pointer',
                   transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                  boxShadow: isSel ? '0 0 10px var(--cyan-muted)' : 'none'
+                  boxShadow: isSel ? '0 0 10px var(--cyan-muted)' : 'none',
                 }}
               >
                 {t.label}
@@ -223,38 +210,10 @@ export default function TopBar() {
           })}
         </div>
 
-        {/* Simulation Mode Toggle Button */}
-        <button
-          onClick={() => {
-            const isSim = localStorage.getItem('nexus_sim_mode') === 'true';
-            localStorage.setItem('nexus_sim_mode', (!isSim).toString());
-            window.dispatchEvent(new Event('nexus_sim_changed'));
-          }}
-          className="btn btn-sm"
-          style={{
-            background: localStorage.getItem('nexus_sim_mode') === 'true' ? 'rgba(255,59,92,0.2)' : 'rgba(255,255,255,0.05)',
-            border: localStorage.getItem('nexus_sim_mode') === 'true' ? '1px solid var(--red)' : '1px solid var(--border-subtle)',
-            color: localStorage.getItem('nexus_sim_mode') === 'true' ? 'var(--red)' : 'var(--text-secondary)',
-            fontWeight: 700,
-            fontSize: 11,
-            fontFamily: 'var(--font-mono)',
-            padding: '4px 10px',
-            borderRadius: 4,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 6,
-            cursor: 'pointer'
-          }}
-          title="Toggle Simulation Mode for demonstrations"
-        >
-          <span>⚡</span>
-          <span>{localStorage.getItem('nexus_sim_mode') === 'true' ? 'SIM MODE ON' : 'SIMULATION'}</span>
-        </button>
-
-        {/* UTC Clock */}
-        <div style={{ textAlign: 'right' }}>
+        {/* UTC Clock — hidden on mobile */}
+        <div className="topbar-clock" style={{ textAlign: 'right' }}>
           <div style={{
-            fontFamily: 'var(--font-mono)', fontSize: 14, fontWeight: 700,
+            fontFamily: 'var(--font-mono)', fontSize: 13, fontWeight: 700,
             color: 'var(--cyan)', letterSpacing: '0.04em',
           }}>
             {time.toUTCString().slice(17, 25)} UTC
@@ -269,25 +228,22 @@ export default function TopBar() {
 
         {/* User Avatar */}
         {user && (
-          <div style={{
+          <div className="topbar-user" style={{
             display: 'flex', alignItems: 'center', gap: 8,
             padding: '4px 10px 4px 4px', borderRadius: 6,
             background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-subtle)',
           }}>
             <div style={{
-              width: 28, height: 28, borderRadius: '50%',
+              width: 28, height: 28, borderRadius: '50%', flexShrink: 0,
               background: 'linear-gradient(135deg, var(--blue), var(--cyan))',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontSize: 11, fontWeight: 700, color: '#000',
             }}>
               {user.full_name?.[0] || 'U'}
             </div>
-            <div>
-              <div style={{ fontSize: 11, fontWeight: 500, lineHeight: 1.2 }}>{user.full_name}</div>
-              <div style={{
-                fontFamily: 'var(--font-mono)', fontSize: 8, color: 'var(--cyan)',
-                letterSpacing: '0.08em',
-              }}>{user.role}</div>
+            <div className="topbar-user-info">
+              <div style={{ fontSize: 11, fontWeight: 500, lineHeight: 1.2, whiteSpace: 'nowrap' }}>{user.full_name}</div>
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 8, color: 'var(--cyan)', letterSpacing: '0.08em' }}>{user.role}</div>
             </div>
           </div>
         )}

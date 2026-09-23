@@ -4,6 +4,7 @@ import ReactDOM from 'react-dom/client';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import App from './App.jsx';
 import './index.css';
+import './responsive.css';
 
 // Automatically catch Vite dynamic import preload failures across all tabs (e.g. after fresh build)
 window.addEventListener('vite:preloadError', (event) => {

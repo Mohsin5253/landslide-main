@@ -196,8 +196,8 @@ export default function RegisterPage() {
       <div style={{ position: 'fixed', inset: 0, background: 'radial-gradient(ellipse 60% 60% at 50% 40%, rgba(41,121,255,0.1) 0%, transparent 70%)', zIndex: 0, pointerEvents: 'none' }} />
 
       <div style={{
-        position: 'relative', zIndex: 1, width: 460,
-        padding: '36px 44px 40px',
+        position: 'relative', zIndex: 1, width: 'min(460px, calc(100vw - 32px))',
+        padding: 'clamp(22px, 5vw, 44px)',
         background: 'rgba(8,16,28,0.9)', backdropFilter: 'blur(20px)',
         border: '1px solid rgba(0,229,255,0.15)', borderRadius: 20,
         boxShadow: '0 0 60px rgba(0,100,200,0.15), inset 0 1px 0 rgba(255,255,255,0.04)',

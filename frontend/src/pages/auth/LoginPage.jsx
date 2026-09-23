@@ -266,7 +266,7 @@ export default function LoginPage() {
       {/* Card */}
       <div style={{
         position: 'relative', zIndex: 1,
-        width: 440, padding: '40px 44px 44px',
+        width: 'min(440px, calc(100vw - 32px))', padding: 'clamp(24px, 5vw, 44px)',
         background: 'rgba(8, 16, 28, 0.88)',
         backdropFilter: 'blur(20px)',
         border: '1px solid rgba(0,229,255,0.18)',
